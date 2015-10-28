@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jms="http://www.springframework.org/schema/jms"
+		xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+              http://www.springframework.org/schema/beans/spring-beans.xsd
+              http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+              http://www.springframework.org/schema/jms
+              http://www.springframework.org/schema/jms/spring-jms.xsd">
+
+	<!-- enables annotation based configuration -->
+	<context:annotation-config />
+	
+	
+	<context:component-scan base-package="org.neos.spring.activemq" />
+	
+	
+	<context:property-placeholder location="classpath:config-mq.properties" />
+	
+	
+<!-- Infrastructure -->
+	<bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="vm://embedded?broker.persistent=false"/>
+	</bean>
+	
+	<bean id="cachingConnectionFactory" class="org.springframework.jms.connection.CachingConnectionFactory">
+		<property name="targetConnectionFactory" ref="connectionFactory"/>
+	</bean>
+ 
+
+	
+		<!-- ======================================================= -->
+  <!-- JMS  Envio , Definicion de un destino MQ and JmsTemplate    -->
+  <!-- ======================================================= -->
+  <!-- Default  Queue Definition -->
+<!-- Destinations -->
+	<bean id="asyncTestQueue" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="mytopic"/>
+	</bean>
+	
+	<!-- JmsTemplate Definition -->
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<property name="connectionFactory" ref="cachingConnectionFactory"/>
+		 <property name="defaultDestination" ref="asyncTestQueue" />
+		 <property name="pubSubDomain" value="true"/>
+	</bean>
+	
+
+	
+	<!-- listener container definition using the jms namespace, concurrency 
+		is the max number of concurrent listeners that can be started -->
+	<jms:listener-container  connection-factory="connectionFactory"   destination-type="topic"   >
+		<jms:listener  destination="mytopic" ref="queueListener"   />
+		<jms:listener  destination="mytopic" ref="queueListener2" />
+	</jms:listener-container>
+</beans>
+
+<!-- 
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:amq="http://activemq.apache.org/schema/core" xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core-5.2.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-2.5.xsd">
+
+<context:property-placeholder location="classpath:config-mq.properties" />
+	
+	<amq:broker id="broker"  useJmx="false" persistent="false"/>
+
+ 
+	
+	
+	
+	<amq:connectionFactory id="amqConnectionFactory"    brokerURL="${jms.url}" userName="${jms.username}" password="${jms.password}" />
+	
+
+	<bean id="connectionFactory"
+		class="org.springframework.jms.connection.CachingConnectionFactory">
+		<constructor-arg ref="amqConnectionFactory" />
+		<property name="reconnectOnException" value="true" />
+		<property name="exceptionListener" ref="jmsExceptionListener" />
+		<property name="clientId" value="client1" />
+	</bean>
+ -->
